@@ -85,13 +85,23 @@ const DEFAULT_CONFIG: ZKVoteConfig = {
   timeout: 300000, // 5 minutes
 };
 
-// ABI aligned with zkVoteModule.ts (guardian-node)
+// ABI aligned with ZKVoteVerifier.sol
 const ZK_VOTE_VERIFIER_ABI = [
   "function submitCommitment(bytes32 proposalId, bytes32 commitment, uint8 guardianSlot)",
   "function revealVote(bytes32 proposalId, uint8 guardianSlot, uint8 vote, uint[2] pA, uint[2][2] pB, uint[2] pC)",
   "function getProposalState(bytes32 proposalId) view returns (uint8 commitCount, uint8 revealCount, uint8 approveCount, uint8 rejectCount, uint8 abstainCount, bool isFinalized)",
-  "function getProposal(bytes32 proposalId) view returns (address target, uint256 value, bytes data, uint256 createdAt, uint256 expiresAt)",
-  "function proposals(bytes32) view returns (bool exists)",
+  "function proposalExists(bytes32 proposalId) view returns (bool)",
+  "function getCommitDeadline(bytes32 proposalId) view returns (uint256)",
+  "function isCommitted(bytes32 proposalId, uint8 guardianSlot) view returns (bool)",
+];
+
+// GuardianRegistry ABI for proposal details
+const GUARDIAN_REGISTRY_ABI = [
+  "function getProposalDetails(bytes32 proposalId) view returns (uint8 action, address targetAddress, string description, bool executed)",
+  "function isBlacklisted(address addr) view returns (bool)",
+  "function getSecurityState() view returns (bool paused, uint8 threshold, uint256 proposalCount)",
+  "function isPaused() view returns (bool)",
+  "function currentThreshold() view returns (uint8)",
 ];
 
 // ─── ZK Vote Query Client ───
@@ -100,17 +110,23 @@ export class ZKVoteClient {
   private config: ZKVoteConfig;
   private provider: ethers.Provider | null = null;
   private verifierAddress: string | null = null;
+  private registryAddress: string | null = null;
 
   constructor(config: Partial<ZKVoteConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
   /**
-   * Connect to on-chain verifier contract for direct queries.
+   * Connect to on-chain contracts for direct queries.
    */
-  connectOnChain(provider: ethers.Provider, verifierAddress: string): void {
+  connectOnChain(
+    provider: ethers.Provider,
+    verifierAddress: string,
+    registryAddress: string,
+  ): void {
     this.provider = provider;
     this.verifierAddress = verifierAddress;
+    this.registryAddress = registryAddress;
   }
 
   /**
@@ -173,7 +189,9 @@ export class ZKVoteClient {
     const [commitCount, revealCount, approveCount, rejectCount, abstainCount, isFinalized] =
       await verifier.getProposalState(proposalId);
 
-    const [, , , createdAt, expiresAt] = await verifier.getProposal(proposalId);
+    // Get commit deadline from verifier (used as expiry time for voting)
+    const commitDeadline = await verifier.getCommitDeadline(proposalId);
+    const expiresAtMs = Number(commitDeadline) * 1000 + (10 * 60 * 1000); // Commit deadline + 10min for reveal
 
     // Build state object for helper functions
     const state = {
@@ -185,7 +203,6 @@ export class ZKVoteClient {
       isFinalized,
     };
 
-    const expiresAtMs = Number(expiresAt) * 1000;
     const approved = isProposalApproved(state);
     const rejected = isProposalRejected(state);
     const phase = getVotingPhase(state, expiresAtMs);
@@ -209,7 +226,7 @@ export class ZKVoteClient {
       isApproved: approved,
       isRejected: rejected,
       frostSignature,
-      expiresAt: Number(expiresAt) * 1000,
+      expiresAt: expiresAtMs,
     };
   }
 
@@ -277,11 +294,55 @@ export class ZKVoteClient {
         ZK_VOTE_VERIFIER_ABI,
         this.provider,
       );
-      return verifier.proposals(proposalId);
+      return verifier.proposalExists(proposalId);
     }
 
     const response = await fetch(`${this.config.guardianApiUrl}/proposals/${proposalId}`);
     return response.ok;
+  }
+
+  /**
+   * Get security state from Guardian Registry.
+   */
+  async getSecurityState(): Promise<{
+    isPaused: boolean;
+    currentThreshold: number;
+    proposalCount: number;
+  }> {
+    if (!this.provider || !this.registryAddress) {
+      throw new Error('On-chain connection required. Call connectOnChain() first.');
+    }
+
+    const registry = new ethers.Contract(
+      this.registryAddress,
+      GUARDIAN_REGISTRY_ABI,
+      this.provider,
+    );
+
+    const [isPaused, threshold, proposalCount] = await registry.getSecurityState();
+
+    return {
+      isPaused,
+      currentThreshold: Number(threshold),
+      proposalCount: Number(proposalCount),
+    };
+  }
+
+  /**
+   * Check if an address is blacklisted.
+   */
+  async isAddressBlacklisted(address: string): Promise<boolean> {
+    if (!this.provider || !this.registryAddress) {
+      throw new Error('On-chain connection required. Call connectOnChain() first.');
+    }
+
+    const registry = new ethers.Contract(
+      this.registryAddress,
+      GUARDIAN_REGISTRY_ABI,
+      this.provider,
+    );
+
+    return registry.isBlacklisted(address);
   }
 
   // ─── Helpers ───
