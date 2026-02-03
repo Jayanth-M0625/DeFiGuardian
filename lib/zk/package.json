@@ -1,0 +1,59 @@
+{
+  "name": "@aegis-protocol/zk",
+  "version": "0.1.0",
+  "description": "Zero-knowledge voting module for Aegis Protocol guardian consensus",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "compile:circuit": "cd scripts && chmod +x compile.sh && ./compile.sh",
+    "test": "ts-node test/zkVote.test.ts",
+    "test:watch": "nodemon --exec ts-node test/zkVote.test.ts",
+    "build": "tsc",
+    "clean": "rm -rf dist artifacts/*.wasm artifacts/*.zkey artifacts/*.r1cs"
+  },
+  "keywords": [
+    "zero-knowledge",
+    "zk-snark",
+    "groth16",
+    "circom",
+    "guardian",
+    "voting",
+    "privacy"
+  ],
+  "author": "Aegis Protocol Team",
+  "license": "MIT",
+  "dependencies": {
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "ethers": "^6.10.0",
+    "ffjavascript": "^0.3.0",
+    "snarkjs": "^0.7.4"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/circomlibjs": "^0.1.6",
+    "@types/node": "^20.11.5",
+    "@types/snarkjs": "^0.7.9",
+    "chai": "^4.4.1",
+    "circom_tester": "^0.0.19",
+    "nodemon": "^3.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aegis-protocol/aegis"
+  },
+  "files": [
+    "dist",
+    "circuits",
+    "contracts",
+    "artifacts/*.wasm",
+    "artifacts/*.zkey",
+    "artifacts/*_verification_key.json",
+    "README.md"
+  ]
+}
