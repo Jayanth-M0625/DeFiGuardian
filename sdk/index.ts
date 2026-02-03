@@ -70,6 +70,23 @@ export {
   type GuardianInfo,
 } from './core/ZK';
 
+export {
+  LiFiClient,
+  getLiFiClient,
+  LiFiError,
+  getQuickQuote,
+  NATIVE_TOKEN,
+  LIFI_DIAMOND,
+  type LiFiConfig,
+  type QuoteRequest,
+  type Route,
+  type RouteStep,
+  type TokenInfo,
+  type ChainInfo,
+  type TransactionRequest,
+  type ExecutionStatus,
+} from './core/lifi';
+
 // Re-export shared types (single source of truth)
 export {
   VOTE_VALUES,

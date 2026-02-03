@@ -21,6 +21,7 @@ import { ethers } from 'ethers';
 import { SecurityContract, SecurityConfig, ExecuteParams, VDFProof, FrostSignature } from './contract';
 import { VDFClient, VDFRequest, VDFStatus } from './VDF';
 import { ZKVoteClient, VoteStatus, TransactionProposal } from './ZK';
+import { LiFiClient, LiFiConfig, Route, ExecutionStatus as LiFiStatus, LIFI_DIAMOND } from './lifi';
 
 // ─── Types ───
 
@@ -28,6 +29,7 @@ export interface MiddlewareConfig {
   security: SecurityConfig;
   vdfWorkerUrl: string;
   guardianApiUrl: string;
+  lifiConfig?: Partial<LiFiConfig>;  // LI.FI API configuration
   provider: ethers.Provider;
   signer?: ethers.Signer;
 }
@@ -80,6 +82,7 @@ export class SecurityMiddleware {
   private contract: SecurityContract;
   private vdfClient: VDFClient;
   private zkClient: ZKVoteClient;
+  private lifiClient: LiFiClient;
 
   constructor(config: MiddlewareConfig) {
     this.config = config;
@@ -97,6 +100,24 @@ export class SecurityMiddleware {
     this.zkClient = new ZKVoteClient({
       guardianApiUrl: config.guardianApiUrl,
     });
+
+    this.lifiClient = new LiFiClient(config.lifiConfig);
+  }
+
+  // ─── Cross-Chain Detection ───
+
+  /**
+   * Check if intent requires cross-chain routing via LI.FI.
+   */
+  isCrossChain(intent: TransactionIntent): boolean {
+    return !!(intent.destChain && intent.destChain !== intent.sourceChain);
+  }
+
+  /**
+   * Check if intent is a bridge operation.
+   */
+  isBridge(intent: TransactionIntent): boolean {
+    return intent.type === 'bridge' || this.isCrossChain(intent);
   }
 
   /**
@@ -116,21 +137,27 @@ export class SecurityMiddleware {
     // Step 0: Pre-flight checks
     await this.preflight(intent);
 
-    const txHash = this.generateTxHash(intent);
+    // Step 0.5: Route through LI.FI for cross-chain
+    const routedIntent = await this.routeIntent(intent, onProgress);
+
+    const txHash = this.generateTxHash(routedIntent);
 
     this.emitProgress(onProgress, {
       stage: 'submitted',
-      message: 'Transaction submitted for security review',
+      message: this.isCrossChain(intent) 
+        ? 'Cross-chain transfer submitted for security review'
+        : 'Transaction submitted for security review',
     });
 
     // Step 1: Determine what's required
-    const requiresVDF = this.vdfClient.isVDFRequired(intent.amount);
+    // Cross-chain = always require VDF (higher risk)
+    const requiresVDF = this.isCrossChain(intent) || this.vdfClient.isVDFRequired(routedIntent.amount);
     const requiresVoting = true; // Always require guardian oversight
 
     // Step 2: Start parallel processes
     const [vdfProof, frostSignature] = await Promise.all([
-      this.handleVDF(intent, txHash, requiresVDF, onProgress),
-      this.handleVoting(intent, txHash, onProgress),
+      this.handleVDF(routedIntent, txHash, requiresVDF, onProgress),
+      this.handleVoting(routedIntent, txHash, onProgress),
     ]);
 
     this.emitProgress(onProgress, {
@@ -141,20 +168,44 @@ export class SecurityMiddleware {
     // Step 3: Execute on-chain
     this.emitProgress(onProgress, {
       stage: 'executing',
-      message: 'Submitting to SecurityMiddleware contract',
+      message: this.isCrossChain(intent)
+        ? 'Submitting cross-chain transfer to SecurityMiddleware'
+        : 'Submitting to SecurityMiddleware contract',
     });
 
     const receipt = await this.contract.executeSecurely({
-      target: intent.target,
-      data: intent.data,
-      value: intent.value,
+      target: routedIntent.target,
+      data: routedIntent.data,
+      value: routedIntent.value,
       vdfProof,
       frostSignature,
     });
 
+    // Step 4: For cross-chain, wait for destination confirmation
+    if (this.isCrossChain(intent) && intent.destChain) {
+      this.emitProgress(onProgress, {
+        stage: 'executing',
+        message: 'Waiting for cross-chain confirmation...',
+      });
+
+      await this.lifiClient.waitForCompletion(
+        receipt.hash,
+        intent.sourceChain,
+        intent.destChain,
+        (status) => {
+          this.emitProgress(onProgress, {
+            stage: 'executing',
+            message: `Cross-chain status: ${status.status}${status.substatus ? ` (${status.substatus})` : ''}`,
+          });
+        },
+      );
+    }
+
     this.emitProgress(onProgress, {
       stage: 'complete',
-      message: 'Transaction executed successfully',
+      message: this.isCrossChain(intent)
+        ? 'Cross-chain transfer completed successfully'
+        : 'Transaction executed successfully',
     });
 
     return {
@@ -165,6 +216,104 @@ export class SecurityMiddleware {
       frostSignature,
       executionTime: Date.now() - startTime,
     };
+  }
+
+  // ─── LI.FI Cross-Chain Routing ───
+
+  /**
+   * Route intent through LI.FI if cross-chain.
+   * Converts high-level intent to actual transaction data.
+   */
+  private async routeIntent(
+    intent: TransactionIntent,
+    onProgress?: (progress: ExecutionProgress) => void,
+  ): Promise<TransactionIntent> {
+    // Same-chain: return as-is
+    if (!this.isCrossChain(intent)) {
+      return intent;
+    }
+
+    this.emitProgress(onProgress, {
+      stage: 'submitted',
+      message: 'Fetching optimal cross-chain route via LI.FI...',
+    });
+
+    // Get quote from LI.FI
+    const route = await this.lifiClient.getQuote({
+      fromChain: intent.sourceChain,
+      toChain: intent.destChain!,
+      fromToken: intent.metadata?.tokenIn || '0x0000000000000000000000000000000000000000',
+      toToken: intent.metadata?.tokenOut || '0x0000000000000000000000000000000000000000',
+      fromAmount: intent.amount.toString(),
+      fromAddress: await this.getSenderAddress(),
+      slippage: intent.metadata?.slippage || 0.005,
+    });
+
+    // Build transaction
+    const tx = await this.lifiClient.buildTransaction(route);
+
+    this.emitProgress(onProgress, {
+      stage: 'submitted',
+      message: `Route found: ${route.steps.map(s => s.tool).join(' → ')} (Gas: $${route.gasCostUSD})`,
+    });
+
+    // Return modified intent with LI.FI calldata
+    return {
+      ...intent,
+      target: tx.to,                         // LI.FI Diamond
+      data: tx.data,                         // LI.FI calldata
+      value: BigInt(tx.value),               // Native token for bridge
+      metadata: {
+        ...intent.metadata,
+        protocol: 'lifi',
+        lifiRoute: route,                    // Store route for reference
+      } as any,
+    };
+  }
+
+  /**
+   * Get LI.FI quote without executing.
+   * Useful for previewing cross-chain routes.
+   */
+  async getQuote(
+    fromChain: number,
+    toChain: number,
+    fromToken: string,
+    toToken: string,
+    amount: bigint,
+    slippage: number = 0.005,
+  ): Promise<Route> {
+    return this.lifiClient.getQuote({
+      fromChain,
+      toChain,
+      fromToken,
+      toToken,
+      fromAmount: amount.toString(),
+      fromAddress: await this.getSenderAddress(),
+      slippage,
+    });
+  }
+
+  /**
+   * Get multiple route options for comparison.
+   */
+  async getRoutes(
+    fromChain: number,
+    toChain: number,
+    fromToken: string,
+    toToken: string,
+    amount: bigint,
+    slippage: number = 0.005,
+  ): Promise<Route[]> {
+    return this.lifiClient.getRoutes({
+      fromChain,
+      toChain,
+      fromToken,
+      toToken,
+      fromAmount: amount.toString(),
+      fromAddress: await this.getSenderAddress(),
+      slippage,
+    });
   }
 
   /**
