@@ -1,0 +1,22 @@
+{
+  "name": "@guardian-protocol/vdf",
+  "version": "0.1.0",
+  "description": "Verifiable Delay Functions for Guardian Protocol time-locks",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "ts-node test/vdf.test.ts",
+    "example": "ts-node examples/ml-bot-demo.ts"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.4.0",
+    "bigint-mod-arith": "^3.3.0",
+    "ethers": "^6.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "typescript": "^5.4.0",
+    "ts-node": "^10.9.2"
+  }
+}
