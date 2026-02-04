@@ -1,5 +1,5 @@
 /**
- * Verification equation: y == π^l * x^r mod N,  r = 2^T mod l
+ * Verifn equation: y == π^l * x^r mod N,  r = 2^T mod l
  */
 /// <reference types="node" />
 
