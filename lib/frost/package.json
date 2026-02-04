@@ -1,0 +1,22 @@
+{
+  "name": "@guardian-protocol/frost",
+  "version": "0.1.0",
+  "description": "FROST threshold signatures for Guardian Protocol",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "ts-node test/frost.test.ts"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^2.1.0",
+    "@noble/curves": "^1.4.0",
+    "@noble/hashes": "^1.4.0",
+    "ethers": "^6.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "typescript": "^5.4.0",
+    "ts-node": "^10.9.2"
+  }
+}
