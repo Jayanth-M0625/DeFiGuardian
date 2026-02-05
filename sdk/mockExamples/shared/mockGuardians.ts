@@ -222,9 +222,12 @@ export async function createFROSTSignature(
   // Create coordinator
   const coordinator = new FROSTCoordinator(network.groupPublicKey, GUARDIAN_THRESHOLD);
 
+  // Only use exactly threshold number of guardians (FROST requires exactly threshold)
+  const selectedGuardianIds = signingGuardianIds.slice(0, GUARDIAN_THRESHOLD);
+
   // Create participants from selected guardians
   const participants: FROSTParticipant[] = [];
-  for (const guardianId of signingGuardianIds) {
+  for (const guardianId of selectedGuardianIds) {
     const guardian = network.guardians[guardianId];
     const participant = new FROSTParticipant(
       guardian.share.participantId,
@@ -235,9 +238,9 @@ export async function createFROSTSignature(
     participants.push(participant);
   }
 
-  // Generate unique session ID
-  const sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  await coordinator.startSession(sessionId, message);
+  // Start session - use the session ID returned by coordinator
+  const proposalId = `proposal-${Date.now()}`;
+  const sessionId = await coordinator.startSession(proposalId, message);
 
   // Round 1: Collect commitments
   for (const participant of participants) {
