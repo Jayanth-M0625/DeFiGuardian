@@ -7,3 +7,9 @@ __pycache__/
 *.pyc
 *.pyo
 uv.lock
+deploy/artifacts/
+deploy/cache/
+deploy/typechain-types/
+deploy/deployments/
+deploy/node_modules/
+deploy/.env
