@@ -21,7 +21,6 @@
 import { ethers } from 'ethers';
 import { FrostSignature } from './contract';
 import {
-  GUARDIAN_API_URL,
   ZK_POLL_INTERVAL,
   ZK_TIMEOUT,
   GUARDIAN_COUNT,
@@ -84,8 +83,8 @@ export interface GuardianInfo {
 
 // ─── Constants ───
 
-const DEFAULT_CONFIG: ZKVoteConfig = {
-  guardianApiUrl: GUARDIAN_API_URL,
+const DEFAULT_CONFIG: Omit<ZKVoteConfig, 'guardianApiUrl'> & { guardianApiUrl: string } = {
+  guardianApiUrl: '',  // Must be provided by caller
   pollInterval: ZK_POLL_INTERVAL,
   timeout: ZK_TIMEOUT,
 };

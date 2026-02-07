@@ -133,12 +133,6 @@ export {
 // Re-export constants
 export {
   PROTOCOL_ADDRESSES,
-  VDF_WORKER_URL,
-  GUARDIAN_API_URL,
-  AGENT_API_URL,
-  VDF_WORKER_URL_TESTNET,
-  GUARDIAN_API_URL_TESTNET,
-  AGENT_API_URL_TESTNET,
   LIFI_API_URL,
   LIFI_INTEGRATOR_ID,
   VDF_ITERATIONS,
@@ -156,12 +150,6 @@ import { ethers } from 'ethers';
 import { createSecurityMiddleware, MiddlewareConfig } from './core/middleware';
 import {
   PROTOCOL_ADDRESSES,
-  VDF_WORKER_URL,
-  GUARDIAN_API_URL,
-  AGENT_API_URL,
-  VDF_WORKER_URL_TESTNET,
-  GUARDIAN_API_URL_TESTNET,
-  AGENT_API_URL_TESTNET,
 } from './core/constants';
 
 /**
@@ -171,6 +159,7 @@ import {
 export function createMainnetMiddleware(
   provider: ethers.Provider,
   signer: ethers.Signer,
+  urls: { vdfWorkerUrl: string; guardianApiUrl: string; agentApiUrl: string },
 ): ReturnType<typeof createSecurityMiddleware> {
   const addresses = PROTOCOL_ADDRESSES[1];
   if (!addresses.middleware || !addresses.registry) {
@@ -183,9 +172,7 @@ export function createMainnetMiddleware(
       registryAddress: addresses.registry,
       chainId: 1,
     },
-    vdfWorkerUrl: VDF_WORKER_URL,
-    guardianApiUrl: GUARDIAN_API_URL,
-    agentApiUrl: AGENT_API_URL,
+    ...urls,
     provider,
     signer,
   });
@@ -198,6 +185,7 @@ export function createMainnetMiddleware(
 export function createTestnetMiddleware(
   provider: ethers.Provider,
   signer: ethers.Signer,
+  urls: { vdfWorkerUrl: string; guardianApiUrl: string; agentApiUrl: string },
 ): ReturnType<typeof createSecurityMiddleware> {
   const addresses = PROTOCOL_ADDRESSES[11155111];
   if (!addresses.middleware || !addresses.registry) {
@@ -210,9 +198,7 @@ export function createTestnetMiddleware(
       registryAddress: addresses.registry,
       chainId: 11155111,
     },
-    vdfWorkerUrl: VDF_WORKER_URL_TESTNET,
-    guardianApiUrl: GUARDIAN_API_URL_TESTNET,
-    agentApiUrl: AGENT_API_URL_TESTNET,
+    ...urls,
     provider,
     signer,
   });

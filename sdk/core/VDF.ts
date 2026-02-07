@@ -23,7 +23,6 @@
 
 import { VDFProof } from './contract';
 import {
-  VDF_WORKER_URL,
   VDF_POLL_INTERVAL,
   VDF_TIMEOUT,
   VDF_ITERATIONS,
@@ -55,8 +54,8 @@ export interface VDFStatus {
 
 // ─── Constants ───
 
-const DEFAULT_CONFIG: VDFConfig = {
-  workerUrl: VDF_WORKER_URL,
+const DEFAULT_CONFIG: Omit<VDFConfig, 'workerUrl'> & { workerUrl: string } = {
+  workerUrl: '',  // Must be provided by caller
   pollInterval: VDF_POLL_INTERVAL,
   timeout: VDF_TIMEOUT,
 };

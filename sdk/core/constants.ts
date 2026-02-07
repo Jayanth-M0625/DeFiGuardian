@@ -25,8 +25,8 @@ export const PROTOCOL_ADDRESSES: Record<number, {
   },
   // Sepolia Testnet
   11155111: {
-    middleware: '', // TODO: Add after testnet deployment
-    registry: '',
+    middleware: '0x1786281baeC0A2ab751c6931F4d593Bb71AF347a',
+    registry: '0xF4627506f27C491DA39d0d8a128BD371F0493D9b',
   },
   // Local development (Hardhat)
   31337: {
@@ -36,24 +36,8 @@ export const PROTOCOL_ADDRESSES: Record<number, {
 } as const;
 
 // ─── Infrastructure URLs ───
-
-/** VDF Worker service URL (mainnet) */
-export const VDF_WORKER_URL = 'https://vdf.sackmoney.io';
-
-/** Guardian API URL (mainnet) */
-export const GUARDIAN_API_URL = 'https://guardians.sackmoney.io';
-
-/** Agent API URL (mainnet) - ML analysis + Guardian routing */
-export const AGENT_API_URL = 'https://agent.sackmoney.io';
-
-/** VDF Worker service URL (testnet) */
-export const VDF_WORKER_URL_TESTNET = 'https://vdf-testnet.sackmoney.io';
-
-/** Guardian API URL (testnet) */
-export const GUARDIAN_API_URL_TESTNET = 'https://guardians-testnet.sackmoney.io';
-
-/** Agent API URL (testnet) */
-export const AGENT_API_URL_TESTNET = 'https://agent-testnet.sackmoney.io';
+// No hardcoded service URLs — callers must provide their own via config.
+// For local dev: VDF=http://localhost:3000, Guardian=http://localhost:3001, Agent=http://localhost:5000
 
 // ─── LI.FI Integration ───
 
@@ -61,7 +45,7 @@ export const AGENT_API_URL_TESTNET = 'https://agent-testnet.sackmoney.io';
 export const LIFI_API_URL = 'https://li.quest/v1';
 
 /** Sack Money integrator ID for LI.FI */
-export const LIFI_INTEGRATOR_ID = 'sackmoney';
+export const LIFI_INTEGRATOR_ID = 'Aegis';
 
 /** Native token placeholder address (same across all chains) */
 export const NATIVE_TOKEN = '0x0000000000000000000000000000000000000000';
