@@ -23,7 +23,6 @@
 
 import { VDFProof } from './contract';
 import {
-  VDF_WORKER_URL,
   VDF_POLL_INTERVAL,
   VDF_TIMEOUT,
   VDF_ITERATIONS,
@@ -55,8 +54,8 @@ export interface VDFStatus {
 
 // ─── Constants ───
 
-const DEFAULT_CONFIG: VDFConfig = {
-  workerUrl: VDF_WORKER_URL,
+const DEFAULT_CONFIG: Omit<VDFConfig, 'workerUrl'> & { workerUrl: string } = {
+  workerUrl: '',  // Must be provided by caller
   pollInterval: VDF_POLL_INTERVAL,
   timeout: VDF_TIMEOUT,
 };
@@ -115,8 +114,8 @@ export class VDFClient {
       throw new Error(`VDF request failed: ${error}`);
     }
 
-    const { jobId } = await response.json();
-    return jobId;
+    const data = await response.json() as { jobId: string };
+    return data.jobId;
   }
 
   /**
@@ -129,7 +128,7 @@ export class VDFClient {
       throw new Error(`Failed to get VDF status: ${response.statusText}`);
     }
 
-    return response.json();
+    return response.json() as Promise<VDFStatus>;
   }
 
   /**
@@ -197,7 +196,7 @@ export class VDFClient {
       throw new Error('Mock VDF not available (worker not in dev mode)');
     }
 
-    return response.json();
+    return response.json() as Promise<VDFProof>;
   }
 
   /**

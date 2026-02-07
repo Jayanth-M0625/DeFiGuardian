@@ -21,7 +21,6 @@
 import { ethers } from 'ethers';
 import { FrostSignature } from './contract';
 import {
-  GUARDIAN_API_URL,
   ZK_POLL_INTERVAL,
   ZK_TIMEOUT,
   GUARDIAN_COUNT,
@@ -84,8 +83,8 @@ export interface GuardianInfo {
 
 // ─── Constants ───
 
-const DEFAULT_CONFIG: ZKVoteConfig = {
-  guardianApiUrl: GUARDIAN_API_URL,
+const DEFAULT_CONFIG: Omit<ZKVoteConfig, 'guardianApiUrl'> & { guardianApiUrl: string } = {
+  guardianApiUrl: '',  // Must be provided by caller
   pollInterval: ZK_POLL_INTERVAL,
   timeout: ZK_TIMEOUT,
 };
@@ -158,8 +157,8 @@ export class ZKVoteClient {
       throw new Error(`Failed to submit proposal: ${error}`);
     }
 
-    const { proposalId } = await response.json();
-    return proposalId;
+    const data = await response.json() as { proposalId: string };
+    return data.proposalId;
   }
 
   /**
@@ -178,7 +177,7 @@ export class ZKVoteClient {
       throw new Error(`Failed to get vote status: ${response.statusText}`);
     }
 
-    return response.json();
+    return response.json() as Promise<VoteStatus>;
   }
 
   /**
@@ -245,7 +244,7 @@ export class ZKVoteClient {
       throw new Error(`FROST signature not available: ${response.statusText}`);
     }
 
-    return response.json();
+    return response.json() as Promise<FrostSignature>;
   }
 
   /**
@@ -286,7 +285,7 @@ export class ZKVoteClient {
       throw new Error(`Failed to get guardians: ${response.statusText}`);
     }
 
-    return response.json();
+    return response.json() as Promise<GuardianInfo[]>;
   }
 
   /**

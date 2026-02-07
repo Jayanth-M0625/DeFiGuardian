@@ -118,9 +118,10 @@ async function main() {
 
   // Write deployed addresses to file
   const outputPath = path.join(__dirname, "..", "deployed-addresses.json");
+  const network = await ethers.provider.getNetwork();
   const output = {
-    network: "localhost",
-    chainId: 31337,
+    network: network.chainId === 31337n ? "localhost" : network.name,
+    chainId: Number(network.chainId),
     deployedAt: new Date().toISOString(),
     deployer: deployer.address,
     contracts: deployed,
