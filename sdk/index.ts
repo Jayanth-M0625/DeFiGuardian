@@ -237,9 +237,9 @@ export function createLocalMiddleware(
       registryAddress: addresses.registry,
       chainId: 31337,
     },
-    vdfWorkerUrl: 'http://localhost:3001',
-    guardianApiUrl: 'http://localhost:3002',
-    agentApiUrl: 'http://localhost:5001',
+    vdfWorkerUrl: 'http://localhost:3000',
+    guardianApiUrl: 'http://localhost:3001',
+    agentApiUrl: 'http://localhost:5000',
     provider,
     signer,
   });

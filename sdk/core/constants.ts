@@ -121,9 +121,10 @@ export const ZK_TIMEOUT = 300000;
 
 /**
  * ML bot score threshold for flagging transactions.
- * Score > 70 = flagged for VDF delay.
+ * Score >= 50 = flagged for VDF delay.
+ * Aligned with Agent's ML_FLAG_THRESHOLD.
  */
-export const ML_BOT_THRESHOLD = 70;
+export const ML_BOT_THRESHOLD = 50;
 
 // ─── Vote Values (aligned with GuardianVote.circom) ───
 

@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Hardhat
+cache/
+artifacts/
+typechain-types/
+
+# Generated contracts folder
+all-contracts/
+
+# Deployment outputs
+deployed-addresses.json
+logs/
+
+# Environment
+.env

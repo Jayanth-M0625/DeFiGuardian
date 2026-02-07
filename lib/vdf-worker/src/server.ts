@@ -18,7 +18,7 @@ import { VDFRequestBody } from './types';
 
 // --- Configuration ---
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const DEV_MODE = process.env.NODE_ENV !== 'production';
 const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
 
