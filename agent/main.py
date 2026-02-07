@@ -326,6 +326,8 @@ def review():
     if not sender:
         return jsonify({"error": "Missing 'sender' in proposal"}), 400
     
+    sender_ens = proposal.get("senderENS")  # ENS name resolved by SDK
+    
     try:
         # Step 1: ML Analysis on sender wallet
         try:
@@ -358,6 +360,7 @@ def review():
         guardian_payload = {
             "txHash": proposal.get("txHash"),
             "sender": sender,
+            "senderENS": sender_ens,
             "target": proposal.get("target"),
             "value": proposal.get("value"),
             "data": proposal.get("data"),
@@ -392,6 +395,7 @@ def review():
             "proposalId": guardian_status.get("proposalId"),
             "mlAnalysis": ml_analysis,
             "guardianStatus": guardian_status,
+            "senderENS": sender_ens,
         }
 
         sse_publish("review", result)
