@@ -17,7 +17,7 @@ import {
   createVotingDecisions,
   simulateFullVotingFlow,
   MockGuardianNetwork,
-} from './mockFrost.ts';
+} from './mockFrost.js';
 
 // Guardian network constants
 const GUARDIAN_COUNT = 10;
