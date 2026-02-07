@@ -121,8 +121,17 @@ export class VDFProver {
     const progressInterval = Math.max(1, Math.floor(iterations / 100));
     const modulus = this.params.modulus;
 
+    // Yield to the event loop every YIELD_INTERVAL iterations so the
+    // Express server stays responsive (e.g. to /vdf/bypass requests).
+    const YIELD_INTERVAL = 10_000;
+
     for (let i = 0; i < iterations; i++) {
       result = (result * result) % modulus;
+
+      // Yield frequently so the HTTP server can handle requests
+      if (i % YIELD_INTERVAL === 0) {
+        await new Promise(resolve => setImmediate(resolve));
+      }
 
       if (onProgress && i % progressInterval === 0) {
         const progress = Math.floor((i / iterations) * 100);
@@ -132,11 +141,6 @@ export class VDFProver {
         const estimatedTimeLeft = rate > 0 ? Math.ceil(remaining / rate) : 0;
 
         onProgress(progress, i, estimatedTimeLeft);
-
-        // Yield to event loop occasionally
-        if (i % (progressInterval * 10) === 0) {
-          await new Promise(resolve => setImmediate(resolve));
-        }
       }
     }
 

@@ -8,8 +8,18 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "demo": "npx ts-node mockExamples/runAll.ts",
     "demo:1": "npx ts-node mockExamples/smallTx.ts",
-    "demo:2": "npx ts-node mockExamples/bigTxPass.ts"
+    "demo:2": "npx ts-node mockExamples/bigTxPass.ts",
+    "demo:3": "npx ts-node mockExamples/bigTxFail.ts",
+    "demo:4": "npx ts-node mockExamples/BigTxCrossPass.ts",
+    "demo:5": "npx ts-node mockExamples/SmallTxCross.ts",
+    "demo:live": "npx ts-node mockExamples/runAll.ts --live",
+    "demo:live:1": "npx ts-node mockExamples/smallTx.ts --live",
+    "demo:live:2": "npx ts-node mockExamples/bigTxPass.ts --live",
+    "demo:live:3": "npx ts-node mockExamples/bigTxFail.ts --live",
+    "demo:live:4": "npx ts-node mockExamples/BigTxCrossPass.ts --live",
+    "demo:live:5": "npx ts-node mockExamples/SmallTxCross.ts --live"
   },
   "dependencies": {
     "ethers": "^6.16.0"

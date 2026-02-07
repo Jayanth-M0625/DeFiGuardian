@@ -40,6 +40,7 @@ interface Proposal {
   amount: string;
   mlScore: number;
   mlFlagged: boolean;
+  forceOutcome?: 'approve' | 'reject' | 'auto';
   status: 'pending' | 'voting' | 'approved' | 'rejected' | 'expired';
   votes: {
     approve: number;
@@ -85,7 +86,7 @@ app.get('/health', (_req: Request, res: Response) => {
 // Submit proposal
 app.post('/proposals/submit', async (req: Request, res: Response) => {
   try {
-    const { txHash, sender, senderENS, target, value, data, chainId, amount, mlScore, mlFlagged } = req.body;
+    const { txHash, sender, senderENS, target, value, data, chainId, amount, mlScore, mlFlagged, forceOutcome } = req.body;
 
     if (!txHash || !sender) {
       return res.status(400).json({ error: 'Missing required fields: txHash, sender' });
@@ -109,6 +110,7 @@ app.post('/proposals/submit', async (req: Request, res: Response) => {
       amount: amount || '0',
       mlScore: mlScore || 0,
       mlFlagged: mlFlagged || false,
+      forceOutcome: forceOutcome || 'auto',
       status: 'pending',
       votes: { approve: 0, reject: 0, abstain: 0 },
       createdAt: Date.now(),
@@ -195,11 +197,19 @@ async function simulateVoting(proposal: Proposal): Promise<void> {
 
   proposal.status = 'voting';
 
-  // Determine vote distribution based on ML score
+  // Determine vote distribution based on forceOutcome or ML score
   let approveCount: number;
   let rejectCount: number;
 
-  if (proposal.mlScore >= 70) {
+  if (proposal.forceOutcome === 'approve') {
+    // Forced approval: strong consensus
+    approveCount = 8;
+    rejectCount = 1;
+  } else if (proposal.forceOutcome === 'reject') {
+    // Forced rejection: strong consensus
+    rejectCount = 8;
+    approveCount = 1;
+  } else if (proposal.mlScore >= 70) {
     // High risk: mostly reject
     rejectCount = 8;
     approveCount = 1;
