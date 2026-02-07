@@ -147,13 +147,16 @@ def analyze():
             verdict = "dangerous"
             recommendation = "reject"
         
-        return jsonify({
+        result = {
             "address": address,
             "is_fraud": prediction["is_fraud"],
             "score": round(score, 2),
             "verdict": verdict,
             "recommendation": recommendation,
-        })
+        }
+
+        sse_publish("analyze", result)
+        return jsonify(result)
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -385,11 +388,14 @@ def review():
                 "message": "Failed to reach Guardian Network",
             }
         
-        return jsonify({
+        result = {
             "proposalId": guardian_status.get("proposalId"),
             "mlAnalysis": ml_analysis,
             "guardianStatus": guardian_status,
-        })
+        }
+
+        sse_publish("review", result)
+        return jsonify(result)
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
