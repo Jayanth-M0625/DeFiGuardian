@@ -22,25 +22,25 @@ import * as path from "path";
 const THRESHOLD = 7;
 
 // Generate mock guardian data (10 guardians)
+// Returns pubKeys as [2][10] array: [[x0..x9], [y0..y9]]
 function generateMockGuardians(): {
-  pubKeys: [bigint, bigint][];
+  pubKeys: [bigint[], bigint[]];
   addresses: string[];
 } {
-  const pubKeys: [bigint, bigint][] = [];
+  const xCoords: bigint[] = [];
+  const yCoords: bigint[] = [];
   const addresses: string[] = [];
 
   for (let i = 0; i < 10; i++) {
     // Mock public keys (random but deterministic for testing)
     const seed = BigInt(i + 1);
-    pubKeys.push([
-      seed * BigInt("0x1234567890abcdef"),
-      seed * BigInt("0xfedcba0987654321"),
-    ]);
+    xCoords.push(seed * BigInt("0x1234567890abcdef"));
+    yCoords.push(seed * BigInt("0xfedcba0987654321"));
     // Mock addresses
     addresses.push(ethers.Wallet.createRandom().address);
   }
 
-  return { pubKeys, addresses };
+  return { pubKeys: [xCoords, yCoords], addresses };
 }
 
 async function main() {

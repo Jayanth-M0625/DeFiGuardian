@@ -30,8 +30,8 @@ export const PROTOCOL_ADDRESSES: Record<number, {
   },
   // Local development (Hardhat)
   31337: {
-    middleware: '', // Set dynamically for local dev
-    registry: '',
+    middleware: '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707', // Set dynamically for local dev
+    registry: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',
   },
 } as const;
 
