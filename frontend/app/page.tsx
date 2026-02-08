@@ -26,7 +26,7 @@ export default function MainPage() {
                 href="/explorer"
                 className="inline-flex items-center justify-center rounded-xl bg-brand text-surface px-7 py-3.5 text-base font-semibold hover:opacity-90 transition-opacity"
               >
-                TX Explorer
+                Explore
               </Link>
               <a
                 href="https://github.com/10234567Z/Aegis"

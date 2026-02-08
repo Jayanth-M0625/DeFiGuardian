@@ -18,7 +18,7 @@ const CloseIcon = () => (
 );
 
 const navLinks = [
-  { href: "/explorer", label: "TX Explorer", title: "Transaction explorer" },
+  { href: "/explorer", label: "Explorer", title: "Transaction explorer" },
 ];
 
 export function Header() {
