@@ -208,9 +208,11 @@ Aegis/
 | **Groth16Verifier** | `0x42D098fE28Ae3923Ac972EB1b803f3e295EFEE7D` | ZK proof verification (snarkjs-generated) |
 | **FROSTVerifier** | `0x02a59687A130D198a23F790866500489F6f88C12` | FROST threshold signature verification |
 | **ZKVoteVerifier** | `0xb638C0997778F172ba4609B8E20252483cD87eEE` | Guardian voting with ZK privacy |
+| **GuardianHook** | `0xFce40025E4a77D5395188d82657A728521D839ec` | Uniswap v4 Hook — enforces security on swaps |
 
 **Deployer**: `0x69E135540F4F5B69592365DFE7730c08ACe96CCb`  
 **Network**: Sepolia (Chain ID: `11155111`)  
+**Uniswap v4 PoolManager**: `0xE03A1074c86CFeDd5C142C4F04F1a1536e203543`  
 **Block Explorer**: `https://sepolia.etherscan.io/address/<ADDRESS>`
 
 ---

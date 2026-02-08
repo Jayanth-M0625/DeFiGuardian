@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
-import {GuardianHook} from "../GuardianHook.sol";
+import {GuardianHook} from "../src/GuardianHook.sol";
 
 /**
  * @title DeployGuardianHook
@@ -18,9 +18,9 @@ import {GuardianHook} from "../GuardianHook.sol";
  *     --verify
  */
 contract DeployGuardianHook is Script {
-    // Uniswap v4 PoolManager addresses (official deployments)
-    address constant POOL_MANAGER_SEPOLIA = 0x8C4BcBE6b9eF47855f97E675296FA3F6fafa5F1A;
-    address constant POOL_MANAGER_BASE_SEPOLIA = 0x7Da1D65F8B249183667cdE74C5CBD46dD38AA829;
+    // Uniswap v4 PoolManager addresses (official deployments — https://docs.uniswap.org/contracts/v4/deployments)
+    address constant POOL_MANAGER_SEPOLIA = 0xE03A1074c86CFeDd5C142C4F04F1a1536e203543;
+    address constant POOL_MANAGER_BASE_SEPOLIA = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;
 
     // Set these before deployment
     address securityMiddleware;
@@ -32,7 +32,13 @@ contract DeployGuardianHook is Script {
         guardianRegistry = vm.envOr("GUARDIAN_REGISTRY", address(0));
     }
 
+    // Foundry's CREATE2 deployer (deterministic deployment proxy)
+    address constant CREATE2_DEPLOYER = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
+
     function run() public {
+        uint256 deployerPrivateKey = vm.envUint("DEPLOYER_KEY");
+        address deployer = vm.addr(deployerPrivateKey);
+
         // Determine network and pool manager
         uint256 chainId = block.chainid;
         address poolManager;
@@ -52,8 +58,7 @@ contract DeployGuardianHook is Script {
         console.log("PoolManager:", poolManager);
         console.log("SecurityMiddleware:", securityMiddleware);
         console.log("GuardianRegistry:", guardianRegistry);
-
-        vm.startBroadcast();
+        console.log("Deployer:", deployer);
 
         // Calculate required flags
         uint160 flags = uint160(
@@ -63,7 +68,7 @@ contract DeployGuardianHook is Script {
             Hooks.BEFORE_ADD_LIQUIDITY_FLAG
         );
 
-        // Mine valid hook address
+        // Mine valid hook address BEFORE broadcast (uses deployer address, not address(this))
         bytes memory creationCode = type(GuardianHook).creationCode;
         bytes memory constructorArgs = abi.encode(
             poolManager,
@@ -74,13 +79,17 @@ contract DeployGuardianHook is Script {
         (address hookAddress, bytes32 salt) = mineHookAddress(
             flags,
             creationCode,
-            constructorArgs
+            constructorArgs,
+            CREATE2_DEPLOYER
         );
 
         console.log("Mined hook address:", hookAddress);
         console.log("Salt:", vm.toString(salt));
 
-        // Deploy hook
+        // Now broadcast the actual deployment
+        vm.startBroadcast(deployerPrivateKey);
+
+        // Deploy hook with CREATE2
         GuardianHook hook = new GuardianHook{salt: salt}(
             IPoolManager(poolManager),
             securityMiddleware,
@@ -102,18 +111,32 @@ contract DeployGuardianHook is Script {
         console.log("===========================\n");
     }
 
-    /// @notice Mine a valid hook address
+    /// @notice Mine a valid hook address using CREATE2
     function mineHookAddress(
         uint160 flags,
         bytes memory creationCode,
-        bytes memory constructorArgs
-    ) internal view returns (address hookAddress, bytes32 salt) {
+        bytes memory constructorArgs,
+        address deployer
+    ) internal pure returns (address hookAddress, bytes32 salt) {
         bytes memory bytecode = abi.encodePacked(creationCode, constructorArgs);
         bytes32 bytecodeHash = keccak256(bytecode);
 
         for (uint256 i = 0; i < 100000; i++) {
             salt = bytes32(i);
-            hookAddress = computeCreate2Address(salt, bytecodeHash);
+            hookAddress = address(
+                uint160(
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                bytes1(0xff),
+                                deployer,
+                                salt,
+                                bytecodeHash
+                            )
+                        )
+                    )
+                )
+            );
 
             if (uint160(hookAddress) & flags == flags) {
                 return (hookAddress, salt);
@@ -121,26 +144,5 @@ contract DeployGuardianHook is Script {
         }
 
         revert("Could not find valid hook address");
-    }
-
-    /// @notice Compute CREATE2 address
-    function computeCreate2Address(
-        bytes32 salt,
-        bytes32 bytecodeHash
-    ) internal view returns (address) {
-        return address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            bytes1(0xff),
-                            address(this),
-                            salt,
-                            bytecodeHash
-                        )
-                    )
-                )
-            )
-        );
     }
 }
